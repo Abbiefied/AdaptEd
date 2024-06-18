@@ -1,0 +1,59 @@
+version: '3.8'
+
+services:
+  virtual-assistant:
+    build: ./virtual_assistant
+    container_name: virtual_assistant
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - DATABASE_URL=${DATABASE_URL}
+      - S3_BUCKET=${S3_BUCKET}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+    ports:
+      - "5001:5000"
+    networks:
+      - adapted_network
+
+  recommender-system:
+    build: ./recommender_system
+    container_name: recommender_system
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - S3_BUCKET=${S3_BUCKET}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+    ports:
+      - "5002:5000"
+    networks:
+      - adapted_network
+
+  multimodal-content-generation:
+    build: ./multimodal_content
+    container_name: multimodal_content_generation
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - S3_BUCKET=${S3_BUCKET}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+    ports:
+      - "5003:5000"
+    networks:
+      - adapted_network
+
+  learning-analytics:
+    build: ./learning_analytics
+    container_name: learning_analytics
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - S3_BUCKET=${S3_BUCKET}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+    ports:
+      - "5004:5000"
+    networks:
+      - adapted_network
+
+networks:
+  adapted_network:
+    driver: bridge

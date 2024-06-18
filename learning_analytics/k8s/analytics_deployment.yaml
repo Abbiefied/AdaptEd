@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: learning-analytics
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: learning-analytics
+  template:
+    metadata:
+      labels:
+        app: learning-analytics
+    spec:
+      containers:
+      - name: learning-analytics
+        image: learning-analytics:latest
+        ports:
+        - containerPort: 5000

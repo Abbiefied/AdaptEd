@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: multimodal-content-generation-service
+spec:
+  selector:
+    app: multimodal-content-generation
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 5000

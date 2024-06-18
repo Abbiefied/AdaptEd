@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: virtual-assistant
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: virtual-assistant
+  template:
+    metadata:
+      labels:
+        app: virtual-assistant
+    spec:
+      containers:
+      - name: virtual-assistant
+        image: abbiefied/virtual-assistant:latest
+        ports:
+        - containerPort: 5000
+        env:
+        - name: OPENAI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: adapted-secrets
+              key: openai_api_key
+        - name: AWS_ACCESS_KEY_ID
+          valueFrom:
+            secretKeyRef:
+              name: adapted-secrets
+              key: aws_access_key_id
+        - name: AWS_SECRET_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: adapted-secrets
+              key: aws_secret_access_key
+        - name: DATABASE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: adapted-config
+              key: DATABASE_URL
+        - name: S3_BUCKET
+          valueFrom:
+            configMapKeyRef:
+              name: adapted-config
+              key: S3_BUCKET

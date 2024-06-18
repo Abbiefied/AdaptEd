@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: multimodal-content-generation
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: multimodal-content-generation
+  template:
+    metadata:
+      labels:
+        app: multimodal-content-generation
+    spec:
+      containers:
+      - name: multimodal-content-generation
+        image: multimodal-content-generation:latest
+        ports:
+        - containerPort: 5000

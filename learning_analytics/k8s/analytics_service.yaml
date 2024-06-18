@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: learning-analytics-service
+spec:
+  selector:
+    app: learning-analytics
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 5000

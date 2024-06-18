@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: recommender-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: recommender-system
+  template:
+    metadata:
+      labels:
+        app: recommender-system
+    spec:
+      containers:
+      - name: recommender-system
+        image: recommender-system:latest
+        ports:
+        - containerPort: 5000
