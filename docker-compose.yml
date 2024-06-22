@@ -1,6 +1,14 @@
 version: '3.8'
 
 services:
+  frontend:
+    build: ./frontend
+    container_name: frontend
+    ports:
+      - "3000:3000"
+    networks:
+      - adapted_network
+
   virtual-assistant:
     build: ./virtual_assistant
     container_name: virtual_assistant
@@ -10,8 +18,6 @@ services:
       - S3_BUCKET=${S3_BUCKET}
       - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
-    ports:
-      - "5001:5000"
     networks:
       - adapted_network
 
@@ -23,8 +29,6 @@ services:
       - S3_BUCKET=${S3_BUCKET}
       - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
-    ports:
-      - "5002:5000"
     networks:
       - adapted_network
 
@@ -36,8 +40,6 @@ services:
       - S3_BUCKET=${S3_BUCKET}
       - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
-    ports:
-      - "5003:5000"
     networks:
       - adapted_network
 
@@ -49,8 +51,17 @@ services:
       - S3_BUCKET=${S3_BUCKET}
       - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+    networks:
+      - adapted_network
+
+  nginx:
+    build: ./nginx
+    container_name: nginx
     ports:
-      - "5004:5000"
+      - "80:80"
+    depends_on:
+      - frontend
+      - virtual-assistant
     networks:
       - adapted_network
 
