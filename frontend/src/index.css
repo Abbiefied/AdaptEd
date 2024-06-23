@@ -1,0 +1,32 @@
+.chat-icon {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  border-radius: 50%;
+  background: transparent;
+  border: none;
+}
+
+.chat-messages {
+  max-height: 300px;
+  overflow-y: auto;
+  margin-bottom: 15px;
+}
+
+.message {
+  padding: 10px;
+  border-radius: 5px;
+  margin-bottom: 5px;
+}
+
+.message.user {
+  background-color: #007bff;
+  color: white;
+  text-align: right;
+}
+
+.message.assistant {
+  background-color: #e9ecef;
+  color: black;
+  text-align: left;
+}
