@@ -1,0 +1,59 @@
+- .env
+- docker-compose.yml
+- frontend
+  - Dockerfile
+  - k8s
+    - frontend_deployment.yaml
+    - frontend_service.yaml
+  - package-lock.json
+  - package.json
+  - public
+    - index.html
+  - src
+    - App.css
+    - App.js
+    - ChatComponent.js
+    - index.css
+    - index.js
+- learning_analytics
+  - app
+    - main.py
+    - requirements.txt
+    - __init__.py
+  - Dockerfile
+  - k8s
+    - analytics_deployment.yaml
+    - analytics_service.yaml
+- multimodal_content
+  - app
+    - main.py
+    - requirements.txt
+  - Dockerfile
+  - k8s
+    - multimodal_deployment.yaml
+    - multimodal_service.yaml
+- nginx
+  - default.conf
+  - Dockerfile
+  - k8s
+    - nginx_deployment.yaml
+    - nginx_service.yaml
+- prometheus_values.yaml
+- recommender_system
+  - app
+    - main.py
+    - requirements.txt
+  - Dockerfile
+  - k8s
+    - recommender_deployment.yaml
+    - recommender_service.yaml
+- virtual_assistant
+  - app
+    - main.py
+    - models.py
+    - requirements.txt
+    - routes.py
+  - Dockerfile
+  - k8s
+    - virtual_assistant_deployment.yaml
+    - virtual_assistant_service.yaml

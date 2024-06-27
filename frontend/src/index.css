@@ -3,7 +3,7 @@
   bottom: 20px;
   right: 20px;
   border-radius: 50%;
-  background: transparent;
+  background: #a97be1;
   border: none;
 }
 
@@ -20,7 +20,7 @@
 }
 
 .message.user {
-  background-color: #007bff;
+  background-color: #a97be1;
   color: white;
   text-align: right;
 }
