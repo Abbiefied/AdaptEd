@@ -19,7 +19,6 @@
   - app
     - main.py
     - requirements.txt
-    - __init__.py
   - Dockerfile
   - k8s
     - analytics_deployment.yaml
