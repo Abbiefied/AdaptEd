@@ -56,19 +56,25 @@ def generate_courses(num_courses=20):
 
 def generate_contents(courses, num_contents_per_course=5):
     all_contents = []
-    content_types = ['File', 'Document', 'Assignment', 'Test']
+    content_formats = ['video/mp4', 'audio/mpeg', 'text/plain', 'application/pdf', 'image/jpeg']
     for course in courses:
         course_contents = []
         for i in range(num_contents_per_course):
+            mime_type = random.choice(content_formats)
             content = {
                 "id": generate_uuid(),
                 "title": f"Content {i} for {course['name']}",
                 "body": f"This is the content body for Content {i} in {course['name']}",
                 "created": (datetime.now() - timedelta(days=random.randint(1, 30))).isoformat(),
                 "position": i,
-                "contentHandler": {
-                    "id": random.choice(content_types)
-                },
+                "mime_type": mime_type,
+                "attachments": [
+                    {
+                        "id": generate_uuid(),
+                        "fileName": f"file_{i}.{mime_type.split('/')[-1]}",
+                        "mimeType": mime_type
+                    }
+                ],
                 "links": []
             }
             course_contents.append(content)
@@ -126,6 +132,8 @@ def generate_all_data():
 
 if __name__ == "__main__":
     data = generate_all_data()
+    # Print a sample of content to verify MIME types are generated
+    print(data['contents'][0]['contents'][0])
     with open('blackboard_mock_data.json', 'w') as f:
         json.dump(data, f, indent=2)
     print("Mock Blackboard Learn data generated and saved to blackboard_mock_data.json")
