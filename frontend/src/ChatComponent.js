@@ -29,7 +29,7 @@ const ChatComponent = () => {
 
   return (
     <>
-      <Button variant="primary" onClick={handleShow} className="chat-icon">
+      <Button onClick={handleShow} className="chat-icon">
         <img src="chat-icon.png" alt="Chat" width="50" />
       </Button>
 

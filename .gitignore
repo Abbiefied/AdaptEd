@@ -2,6 +2,8 @@
 
 # dependencies
 /frontend/node_modules
+/recommender_system/app/blackboard_mock_data.json
+/venv
 /.pnp
 .pnp.js
 
