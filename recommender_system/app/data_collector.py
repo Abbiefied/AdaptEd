@@ -1,11 +1,12 @@
 import os
 import requests
-from datetime import datetime
+from datetime import datetime, timedelta
 import psycopg2
 from psycopg2 import sql
+import random
 
 # API configuration
-API_BASE_URL = "http://localhost:8000"  # URL of our mock API
+API_BASE_URL = "http://localhost:8000"
 
 # Database configuration
 DB_NAME = os.getenv('DB_NAME', 'adapted_db')
@@ -47,7 +48,16 @@ def fetch_courses():
     return fetch_all_pages("/learn/api/public/v1/courses")
 
 def fetch_course_contents(course_id):
-    return fetch_data(f"/learn/api/public/v1/courses/{course_id}/contents")['results']
+    contents = fetch_data(f"/learn/api/public/v1/courses/{course_id}/contents")['results']
+    return [
+        {
+            'id': content['id'],
+            'course_id': course_id,
+            'title': content['title'],
+            'mime_type': content.get('mime_type'),
+            'body': content.get('body', 'No description available')
+        } for content in contents
+    ]
 
 def fetch_course_users(course_id):
     return fetch_data(f"/learn/api/public/v1/courses/{course_id}/users")['results']
@@ -83,7 +93,8 @@ def create_tables(conn):
                 id VARCHAR(255) PRIMARY KEY,
                 course_id VARCHAR(255),
                 title VARCHAR(255),
-                content_type VARCHAR(255)
+                mime_type VARCHAR(255),
+                body TEXT
             )
         """)
         cur.execute("""
@@ -100,6 +111,19 @@ def create_tables(conn):
                 score FLOAT,
                 PRIMARY KEY (user_id, course_id)
             )
+        """)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS interactions (
+                id SERIAL PRIMARY KEY,
+                user_id VARCHAR(255),
+                content_id VARCHAR(255),
+                timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id),
+                FOREIGN KEY (content_id) REFERENCES contents(id)
+            )
+        """)
+        cur.execute("""
+            CREATE INDEX IF NOT EXISTS idx_user_content ON interactions(user_id, content_id)
         """)
     conn.commit()
 
@@ -120,6 +144,27 @@ def insert_data(conn, table_name, data):
             ),
             values
         )
+    conn.commit()
+    
+def generate_mock_interactions(conn):
+    with conn.cursor() as cur:
+        cur.execute("SELECT id FROM users")
+        users = [row[0] for row in cur.fetchall()]
+        
+        cur.execute("SELECT id FROM contents")
+        contents = [row[0] for row in cur.fetchall()]
+        
+        interactions = []
+        for user in users:
+            for _ in range(random.randint(5, 20)):  # Random number of interactions per user
+                content = random.choice(contents)
+                timestamp = datetime.now() - timedelta(days=random.randint(1, 365))
+                interactions.append((user, content, timestamp))
+        
+        cur.executemany("""
+            INSERT INTO interactions (user_id, content_id, timestamp)
+            VALUES (%s, %s, %s)
+        """, interactions)
     conn.commit()
 
 def main():
@@ -159,12 +204,16 @@ def main():
             course_id = course['id']
             
             contents = fetch_course_contents(course_id)
+            print(f"Sample content for course {course_id}:")
+            print(contents[0] if contents else "No contents")
+            
             insert_data(conn, 'contents', [
                 {
                     'id': content['id'],
                     'course_id': course_id,
                     'title': content['title'],
-                    'content_type': content['contentHandler']['id']
+                    'mime_type': content.get('mime_type'),
+                    'body': content['body']
                 } for content in contents
             ])
             
@@ -184,9 +233,12 @@ def main():
                     'score': grade['score']
                 } for grade in grades
             ])
-        
+        generate_mock_interactions(conn) 
         print("Data collection and storage completed successfully.")
-    
+        print("Sample content after insertion:")
+        with conn.cursor() as cur:
+            cur.execute("SELECT * FROM contents LIMIT 1")
+            print(cur.fetchone())   
     except Exception as e:
         print(f"An error occurred: {e}")
     
