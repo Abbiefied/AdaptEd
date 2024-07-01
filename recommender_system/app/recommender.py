@@ -70,7 +70,11 @@ class Recommender:
             ).fillna(0)
 
             # Prepare content feature matrix
+            # Prepare content feature matrix
             self.tfidf = TfidfVectorizer(stop_words='english')
+            content_features = self.contents.set_index('id')['title'] + ' ' + self.contents.set_index('id')['body']
+            self.content_feature_matrix = self.tfidf.fit_transform(content_features)
+
             content_features = self.contents.set_index('id')['title'] + ' ' + self.contents.set_index('id')['body']
             self.content_feature_matrix = self.tfidf.fit_transform(content_features)
 
@@ -109,7 +113,18 @@ class Recommender:
             return ""
         user_content_ids = user_interactions['content_id'].tolist()
         user_preferences = self.contents[self.contents['id'].isin(user_content_ids)]['title'].tolist()
+        user_interactions = self.interactions[self.interactions['user_id'] == user_id]
+        if user_interactions.empty:
+            return ""
+        user_content_ids = user_interactions['content_id'].tolist()
+        user_preferences = self.contents[self.contents['id'].isin(user_content_ids)]['title'].tolist()
         return ' '.join(user_preferences)
+    
+    def get_user_content_type_preferences(self, user_id):
+        user_interactions = self.interactions[self.interactions['user_id'] == user_id]
+        content_type_counts = user_interactions.merge(self.contents, left_on='content_id', right_on='id')['content_handler'].value_counts()
+        total_interactions = content_type_counts.sum()
+        return (content_type_counts / total_interactions).to_dict()
     
     def get_user_content_type_preferences(self, user_id):
         user_interactions = self.interactions[self.interactions['user_id'] == user_id]
@@ -124,12 +139,23 @@ class Recommender:
             popular_content = self.contents.sort_values('id', ascending=False)['id'].tolist()[:n]
             return popular_content
 
+        if not user_preferences:
+            # If the user has no preferences, recommend the most popular content
+            popular_content = self.contents.sort_values('id', ascending=False)['id'].tolist()[:n]
+            return popular_content
+
         user_profile = self.tfidf.transform([user_preferences])
         cosine_similarities = cosine_similarity(user_profile, self.content_feature_matrix).flatten()
         related_content_indices = cosine_similarities.argsort()[::-1]
         return self.contents.iloc[related_content_indices]['id'].tolist()[:n]
     
+        cosine_similarities = cosine_similarity(user_profile, self.content_feature_matrix).flatten()
+        related_content_indices = cosine_similarities.argsort()[::-1]
+        return self.contents.iloc[related_content_indices]['id'].tolist()[:n]
+    
     def collaborative_filtering(self, user_id, n=5):
+        user_vector = self.user_content_matrix.loc[user_id].values.reshape(1, -1)
+        user_similarities = cosine_similarity(user_vector, self.user_content_matrix.values)
         user_vector = self.user_content_matrix.loc[user_id].values.reshape(1, -1)
         user_similarities = cosine_similarity(user_vector, self.user_content_matrix.values)
         similar_users = user_similarities.argsort().flatten()[::-1][1:11]  # Top 10 similar users
@@ -138,7 +164,23 @@ class Recommender:
         for similar_user in self.user_content_matrix.index[similar_users]:
             contents = self.user_content_matrix.loc[similar_user][self.user_content_matrix.loc[similar_user] == 1].index.tolist()
             recommended_contents.extend(contents)
+        recommended_contents = []
+        for similar_user in self.user_content_matrix.index[similar_users]:
+            contents = self.user_content_matrix.loc[similar_user][self.user_content_matrix.loc[similar_user] == 1].index.tolist()
+            recommended_contents.extend(contents)
         
+        recommended_contents = list(set(recommended_contents) - set(self.user_content_matrix.loc[user_id][self.user_content_matrix.loc[user_id] == 1].index.tolist()))
+        return recommended_contents[:n]
+
+    def time_decay_factor(self, timestamp, now=datetime.now()):
+        days_since_interaction = (now - timestamp).days
+        return np.exp(-days_since_interaction / 30)  # 30-day half-life
+
+    def get_user_mime_type_preferences(self, user_id):
+        user_interactions = self.interactions[self.interactions['user_id'] == user_id]
+        mime_type_counts = user_interactions.merge(self.contents, left_on='content_id', right_on='id')['mime_type'].value_counts()
+        total_interactions = mime_type_counts.sum()
+        return (mime_type_counts / total_interactions).to_dict()
         recommended_contents = list(set(recommended_contents) - set(self.user_content_matrix.loc[user_id][self.user_content_matrix.loc[user_id] == 1].index.tolist()))
         return recommended_contents[:n]
 
@@ -264,6 +306,15 @@ if __name__ == "__main__":
         user_id = recommender.users['id'].iloc[0]  
         recommendations = recommender.recommend(user_id, n=5)
         
+        print(f"\nRecommendations for user {user_id}:")
+        if recommendations:
+            for rec in recommendations:
+                print(f"Content: {rec['title']}")
+                print(f"MIME Type: {rec['mime_type']}")
+                print(f"Description: {rec['body'][:100]}...")
+                print()
+        else:
+            print("No recommendations available for this user.")
         print(f"\nRecommendations for user {user_id}:")
         if recommendations:
             for rec in recommendations:
