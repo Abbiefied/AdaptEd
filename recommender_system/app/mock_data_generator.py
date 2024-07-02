@@ -32,16 +32,20 @@ def generate_users(num_users=100):
 
 def generate_courses(num_courses=20):
     courses = []
-    subjects = ['Mathematics', 'Science', 'History', 'Literature', 'Computer Science']
-    for i in range(num_courses):
+    subjects = ['Mathematics', 'Science', 'History', 'Literature', 'Computer Science', 
+                'Physics', 'Chemistry', 'Biology', 'Economics', 'Psychology',
+                'Sociology', 'Philosophy', 'Art History', 'Music Theory', 'Political Science',
+                'Linguistics', 'Anthropology', 'Geography', 'Environmental Science', 'Statistics']
+    
+    for i, subject in enumerate(subjects[:num_courses]):
         course = {
             "id": generate_uuid(),
             "uuid": generate_uuid(),
             "externalId": f"course_{i}",
             "dataSourceId": generate_uuid(),
             "courseId": f"COURSE{i:03d}",
-            "name": f"Course {i}: {random.choice(subjects)}",
-            "description": f"Description for Course {i}",
+            "name": f"Course {i}: {subject}",
+            "description": f"An in-depth study of {subject}",
             "created": (datetime.now() - timedelta(days=random.randint(30, 365))).isoformat(),
             "organization": False,
             "ultraStatus": "Classic",
