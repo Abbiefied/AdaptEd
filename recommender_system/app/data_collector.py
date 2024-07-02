@@ -1,11 +1,12 @@
 import os
 import requests
-from datetime import datetime
+from datetime import datetime, timedelta
 import psycopg2
 from psycopg2 import sql
+import random
 
 # API configuration
-API_BASE_URL = "http://localhost:8000"  # URL of our mock API
+API_BASE_URL = "http://localhost:8000"
 
 # Database configuration
 DB_NAME = os.getenv('DB_NAME', 'adapted_db')
@@ -144,6 +145,27 @@ def insert_data(conn, table_name, data):
             values
         )
     conn.commit()
+    
+def generate_mock_interactions(conn):
+    with conn.cursor() as cur:
+        cur.execute("SELECT id FROM users")
+        users = [row[0] for row in cur.fetchall()]
+        
+        cur.execute("SELECT id FROM contents")
+        contents = [row[0] for row in cur.fetchall()]
+        
+        interactions = []
+        for user in users:
+            for _ in range(random.randint(5, 20)):  # Random number of interactions per user
+                content = random.choice(contents)
+                timestamp = datetime.now() - timedelta(days=random.randint(1, 365))
+                interactions.append((user, content, timestamp))
+        
+        cur.executemany("""
+            INSERT INTO interactions (user_id, content_id, timestamp)
+            VALUES (%s, %s, %s)
+        """, interactions)
+    conn.commit()
 
 def main():
     # Establish database connection
@@ -211,13 +233,12 @@ def main():
                     'score': grade['score']
                 } for grade in grades
             ])
-        
+        generate_mock_interactions(conn) 
         print("Data collection and storage completed successfully.")
         print("Sample content after insertion:")
         with conn.cursor() as cur:
             cur.execute("SELECT * FROM contents LIMIT 1")
-            print(cur.fetchone())
-            
+            print(cur.fetchone())   
     except Exception as e:
         print(f"An error occurred: {e}")
     
