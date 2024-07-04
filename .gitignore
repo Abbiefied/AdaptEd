@@ -4,6 +4,7 @@
 /blackboard_mock_data.json
 /frontend/node_modules
 /recommender_system/app/blackboard_mock_data.json
+/blackboard_mock_data.json
 /venv
 /.pnp
 .pnp.js
