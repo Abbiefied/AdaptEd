@@ -2,13 +2,15 @@ import pandas as pd
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.decomposition import LatentDirichletAllocation
+from scipy.sparse.linalg import svds
 from sqlalchemy import create_engine
-import os
 from dotenv import load_dotenv
-import logging
 from datetime import datetime
 from evaluation import evaluate_recommendations
+import logging
 import random
+import os
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -74,6 +76,17 @@ class Recommender:
             content_features = self.contents.set_index('id')['title'] + ' ' + self.contents.set_index('id')['body']
             self.content_feature_matrix = self.tfidf.fit_transform(content_features)
 
+            # Apply LDA for topic modeling
+            self.lda = LatentDirichletAllocation(n_components=10, random_state=42)
+            self.content_topics = self.lda.fit_transform(self.content_feature_matrix)
+
+            # Extract course metadata
+            self.contents['subject'] = self.contents['title'].apply(lambda x: x.split(':')[1].strip())
+            self.course_subjects = pd.get_dummies(self.contents['subject'])
+
+            # Combine features
+            self.content_features = np.hstack([self.content_feature_matrix.toarray(), self.content_topics, self.course_subjects])
+
             logging.info("Data prepared successfully")
         except Exception as e:
             logging.error(f"Error preparing data: {e}")
@@ -128,19 +141,36 @@ class Recommender:
         cosine_similarities = cosine_similarity(user_profile, self.content_feature_matrix).flatten()
         related_content_indices = cosine_similarities.argsort()[::-1]
         return self.contents.iloc[related_content_indices]['id'].tolist()[:n]
+
+    def matrix_factorization(self):
+        # Create user-item matrix
+        user_item_matrix = self.user_content_matrix.values
+
+        # Perform SVD
+        U, sigma, Vt = svds(user_item_matrix, k=50)  # You can adjust the number of factors (k)
+
+        # Convert to diagonal matrix
+        sigma = np.diag(sigma)
+
+        # Predict ratings
+        user_item_estimated = np.dot(np.dot(U, sigma), Vt)
+
+        # Convert back to dataframe
+        self.user_item_predicted = pd.DataFrame(user_item_estimated, columns=self.user_content_matrix.columns, index=self.user_content_matrix.index)  
     
     def collaborative_filtering(self, user_id, n=5):
-        user_vector = self.user_content_matrix.loc[user_id].values.reshape(1, -1)
-        user_similarities = cosine_similarity(user_vector, self.user_content_matrix.values)
-        similar_users = user_similarities.argsort().flatten()[::-1][1:11]  # Top 10 similar users
+        if not hasattr(self, 'user_item_predicted'):
+            self.matrix_factorization()
         
-        recommended_contents = []
-        for similar_user in self.user_content_matrix.index[similar_users]:
-            contents = self.user_content_matrix.loc[similar_user][self.user_content_matrix.loc[similar_user] == 1].index.tolist()
-            recommended_contents.extend(contents)
+        user_predictions = self.user_item_predicted.loc[user_id]
         
-        recommended_contents = list(set(recommended_contents) - set(self.user_content_matrix.loc[user_id][self.user_content_matrix.loc[user_id] == 1].index.tolist()))
-        return recommended_contents[:n]
+        # Get contents that the user hasn't interacted with
+        already_interacted = self.user_content_matrix.loc[user_id][self.user_content_matrix.loc[user_id] > 0].index
+        user_predictions = user_predictions.drop(already_interacted)
+        
+        top_recommendations = user_predictions.sort_values(ascending=False).index[:n].tolist()
+        
+        return top_recommendations
 
     def time_decay_factor(self, timestamp, now=datetime.now()):
         days_since_interaction = (now - timestamp).days
@@ -167,22 +197,21 @@ class Recommender:
             mime_type = self.contents[self.contents['id'] == content_id]['mime_type'].iloc[0]
             type_score = mime_type_prefs.get(mime_type, 0)
             
-            # Check if the user has interacted with this content before
-            interaction = self.interactions[(self.interactions['user_id'] == user_id) & 
-                                            (self.interactions['content_id'] == content_id)]
+            # Get content-based similarity score
+            content_index = self.contents[self.contents['id'] == content_id].index[0]
+            content_similarity = cosine_similarity(self.content_features[content_index].reshape(1, -1), 
+                                                self.content_features).flatten()[content_index]
             
-            if not interaction.empty:
-                last_interaction = pd.to_datetime(interaction['timestamp'].iloc[0])
-                time_score = self.time_decay_factor(last_interaction)
-            else:
-                time_score = 1  # No previous interaction, so no decay
+            # Get collaborative filtering score
+            cf_score = self.user_item_predicted.loc[user_id, content_id] if content_id in self.user_item_predicted.columns else 0
             
-            rec_scores[content_id] = type_score * time_score
+            # Combine scores
+            rec_scores[content_id] = 0.4 * type_score + 0.3 * content_similarity + 0.3 * cf_score
         
         # Sort recommendations by score
         sorted_recs = sorted(rec_scores.items(), key=lambda x: x[1], reverse=True)
         return [content_id for content_id, score in sorted_recs[:n]]
-    
+        
     def get_content_details(self, content_ids):
         return self.contents[self.contents['id'].isin(content_ids)][['id', 'title', 'body', 'mime_type']].to_dict('records')
     
@@ -228,8 +257,6 @@ class Recommender:
             if not isinstance(true_items, list):
                 true_items = [true_items]
             pred_items = [rec['id'] for rec in self.recommend(user_id, n=k, for_evaluation=True)]
-            
-            print(f"User {user_id}: True items: {true_items}, Predicted items: {pred_items}")
             
             # Ensure both true_items and pred_items are non-empty before appending
             if true_items and pred_items:
