@@ -32,16 +32,20 @@ def generate_users(num_users=100):
 
 def generate_courses(num_courses=20):
     courses = []
-    subjects = ['Mathematics', 'Science', 'History', 'Literature', 'Computer Science']
-    for i in range(num_courses):
+    subjects = ['Mathematics', 'Science', 'History', 'Literature', 'Computer Science', 
+                'Physics', 'Chemistry', 'Biology', 'Economics', 'Psychology',
+                'Sociology', 'Philosophy', 'Art History', 'Music Theory', 'Political Science',
+                'Linguistics', 'Anthropology', 'Geography', 'Environmental Science', 'Statistics']
+    
+    for i, subject in enumerate(subjects[:num_courses]):
         course = {
             "id": generate_uuid(),
             "uuid": generate_uuid(),
             "externalId": f"course_{i}",
             "dataSourceId": generate_uuid(),
             "courseId": f"COURSE{i:03d}",
-            "name": f"Course {i}: {random.choice(subjects)}",
-            "description": f"Description for Course {i}",
+            "name": f"Course {i}: {subject}",
+            "description": f"An in-depth study of {subject}",
             "created": (datetime.now() - timedelta(days=random.randint(30, 365))).isoformat(),
             "organization": False,
             "ultraStatus": "Classic",
@@ -57,9 +61,11 @@ def generate_courses(num_courses=20):
 def generate_contents(courses, num_contents_per_course=5):
     all_contents = []
     content_formats = ['video/mp4', 'audio/mpeg', 'text/plain', 'application/pdf', 'image/jpeg']
+    content_formats = ['video/mp4', 'audio/mpeg', 'text/plain', 'application/pdf', 'image/jpeg']
     for course in courses:
         course_contents = []
         for i in range(num_contents_per_course):
+            mime_type = random.choice(content_formats)
             mime_type = random.choice(content_formats)
             content = {
                 "id": generate_uuid(),
@@ -67,6 +73,14 @@ def generate_contents(courses, num_contents_per_course=5):
                 "body": f"This is the content body for Content {i} in {course['name']}",
                 "created": (datetime.now() - timedelta(days=random.randint(1, 30))).isoformat(),
                 "position": i,
+                "mime_type": mime_type,
+                "attachments": [
+                    {
+                        "id": generate_uuid(),
+                        "fileName": f"file_{i}.{mime_type.split('/')[-1]}",
+                        "mimeType": mime_type
+                    }
+                ],
                 "mime_type": mime_type,
                 "attachments": [
                     {
@@ -132,7 +146,6 @@ def generate_all_data():
 
 if __name__ == "__main__":
     data = generate_all_data()
-    # Print a sample of content to verify MIME types are generated
     print(data['contents'][0]['contents'][0])
     with open('blackboard_mock_data.json', 'w') as f:
         json.dump(data, f, indent=2)
